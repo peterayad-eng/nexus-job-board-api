@@ -31,6 +31,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+AUTH_USER_MODEL = "users.User"
 
 # Application definition
 
@@ -41,6 +42,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'django_filters',
+    'phonenumber_field',
+    'corsheaders',
+    'users',
+    'companies',
+    'jobs',
+    'applications',
+    'categories',
 ]
 
 MIDDLEWARE = [
@@ -75,7 +85,7 @@ WSGI_APPLICATION = 'jobboard.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-"""
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -109,7 +119,7 @@ else:
             'PORT': config('DB_PORT', default='5432'),
         }
     }
-
+"""
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -160,6 +170,9 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+    ]
 }
 
 # JWT Configuration
