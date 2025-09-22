@@ -2,6 +2,7 @@ from rest_framework import serializers
 from phonenumber_field.serializerfields import PhoneNumberField
 from django.contrib.auth.password_validation import validate_password
 from companies.serializers import CompanySummarySerializer
+from django.contrib.auth import authenticate
 from .models import User
 
 class UserSerializer(serializers.ModelSerializer):
@@ -148,4 +149,25 @@ class UserAdminSerializer(serializers.ModelSerializer):
             'posted_job_count', 'date_joined', 'last_login'
         ]
         read_only_fields = ['id', 'date_joined', 'last_login']
+
+class UserLoginSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(
+        write_only=True,
+        style={'input_type': 'password'}
+    )
+
+    def validate(self, data):
+        username = data.get('username')
+        password = data.get('password')
+
+        if username and password:
+            user = authenticate(username=username, password=password)
+            if user:
+                if user.is_active:
+                    data['user'] = user
+                    return data
+                raise serializers.ValidationError('User account is disabled.')
+            raise serializers.ValidationError('Unable to log in with provided credentials.')
+        raise serializers.ValidationError('Must include "username" and "password".')
 

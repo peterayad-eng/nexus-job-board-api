@@ -4,23 +4,31 @@ from .views import (
     ApplicationRetrieveView,
     UserApplicationsView,
     JobApplicationsView,
-    JobApplicationCountView
+    JobApplicationCountView,
+    ApplicationAdminListView,
+    ApplicationStatusUpdateView,
+    CompanyApplicationsView
 )
 
 urlpatterns = [
-    # Main applications endpoint - list all applications and create new ones
+    # Main applications endpoints
     path('', ApplicationListCreateView.as_view(), name='application-list-create'),
-    
-    # Individual application details
     path('<int:pk>/', ApplicationRetrieveView.as_view(), name='application-detail'),
     
-    # User's personal applications
+    # User-specific applications
     path('my-applications/', UserApplicationsView.as_view(), name='user-applications'),
     
-    # Applications for a specific job
+    # Job-specific applications
     path('job/<int:job_id>/', JobApplicationsView.as_view(), name='job-applications'),
-    
-    # Application count for a specific job
     path('job/<int:job_id>/count/', JobApplicationCountView.as_view(), name='job-application-count'),
+    
+    # Company-specific applications
+    path('company/<int:company_id>/', CompanyApplicationsView.as_view(), name='company-applications'),
+    
+    # Application management
+    path('<int:pk>/status/', ApplicationStatusUpdateView.as_view(), name='application-status-update'),
+    
+    # Admin endpoints
+    path('admin/all/', ApplicationAdminListView.as_view(), name='admin-application-list'),
 ]
 
