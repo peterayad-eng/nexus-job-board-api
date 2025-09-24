@@ -62,6 +62,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'jobboard.middleware.QueryPerformanceMiddleware',
 ]
 
 ROOT_URLCONF = 'jobboard.urls'

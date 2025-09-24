@@ -22,7 +22,17 @@ class Application(models.Model):
     updated_date = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ['job', 'applicant']
+        constraints = [
+        models.UniqueConstraint(fields=['job', 'applicant'], name='unique_job_applicant')
+        ]
+        indexes = [
+            # For the unique_together constraint optimization
+            models.Index(fields=['job', 'applicant']),
+
+            # Common query patterns
+            models.Index(fields=['applicant', 'applied_date']),
+            models.Index(fields=['job', 'status']),
+        ]
         ordering = ['-applied_date']
 
     def __str__(self):

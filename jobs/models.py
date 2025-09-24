@@ -26,6 +26,18 @@ class Job(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['is_active', 'created_at']),
+            models.Index(fields=['-created_at']),
+
+            # Common filter combinations
+            models.Index(fields=['company', 'is_active']),
+            models.Index(fields=['job_type', 'is_active']),
+            models.Index(fields=['location', 'is_active']),
+        ]
+        ordering = ['-created_at']
+
     def __str__(self):
         return f"{self.title} - {self.company.name}"
 

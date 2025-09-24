@@ -14,6 +14,14 @@ class Company(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['location']),
+            models.Index(fields=['location', 'created_at']),
+            models.Index(fields=['created_at']),
+        ]
+        ordering = ['-created_at']
+
     def __str__(self):
         return self.name
 
