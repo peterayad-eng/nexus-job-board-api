@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_filters',
     'rest_framework_simplejwt',
+    'drf_spectacular',
     'phonenumber_field',
     'corsheaders',
     'users',
@@ -174,7 +175,8 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
-    ]
+    ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 # JWT Configuration
@@ -194,4 +196,29 @@ CORS_ALLOWED_ORIGINS = [
 # Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Spectacular Swagger settings
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Nexus Job Board API',
+    'DESCRIPTION': 'A comprehensive job board API with role-based authentication',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+
+    # Authentication
+    'SERVE_PERMISSIONS': ['rest_framework.permissions.AllowAny'],
+
+    # Schema generation options
+    'SCHEMA_PATH_PREFIX': '/api/',
+    'COMPONENT_SPLIT_REQUEST': True,
+
+    # Tags for grouping endpoints
+    'TAGS': [
+        {'name': 'authentication', 'description': 'User authentication endpoints'},
+        {'name': 'users', 'description': 'User management endpoints'},
+        {'name': 'companies', 'description': 'Company management endpoints'},
+        {'name': 'jobs', 'description': 'Job posting and search endpoints'},
+        {'name': 'applications', 'description': 'Job application endpoints'},
+        {'name': 'categories', 'description': 'Category and skill management'},
+    ],
+}
 

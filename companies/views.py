@@ -7,8 +7,17 @@ from rest_framework.views import APIView
 from .models import Company
 from .serializers import CompanySerializer, CompanyCreateSerializer, CompanySummarySerializer
 from users.permissions import IsAdminUserRole, IsCompanyManager, IsOwnerOrAdmin, IsCompanyOwnerOrAdmin
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 
 # Create your views here.
+@extend_schema(
+    tags=['companies'],
+    summary='List and create companies',
+    description='Get a list of all companies or create a new company profile',
+    parameters=[
+        OpenApiParameter(name='search', description='Search company names and descriptions', required=False),
+    ]
+)
 class CompanyListCreateView(generics.ListCreateAPIView):
     serializer_class = CompanySerializer
     filter_backends = [filters.SearchFilter]
@@ -36,6 +45,11 @@ class CompanyListCreateView(generics.ListCreateAPIView):
         # Add the creator as a manager by default
         company.managers.add(self.request.user)
 
+@extend_schema(
+    tags=["companies"],
+    summary="Retrieve a single company",
+    description="Fetch company details including managers, employees, and jobs count."
+)
 class CompanyRetrieveView(generics.RetrieveAPIView):
     serializer_class = CompanySerializer
     permission_classes = [permissions.AllowAny]
@@ -47,6 +61,23 @@ class CompanyRetrieveView(generics.RetrieveAPIView):
             job_count=Count('jobs', distinct=True)
         ).select_related('created_by').prefetch_related('managers')
 
+@extend_schema(
+    tags=['companies'],
+    summary='Update company profile',
+    description='Company managers or admins can update company information',
+    examples=[
+        OpenApiExample(
+            'Company Update',
+            value={
+                'name': 'Updated Company Name',
+                'description': 'Updated company description...',
+                'location': 'New York, NY',
+                'website': 'https://updated-website.com',
+                'contact_email': 'updated@company.com'
+            }
+        )
+    ]
+)
 class CompanyUpdateView(generics.UpdateAPIView):
     serializer_class = CompanySerializer
     permission_classes = [IsCompanyManager | IsAdminUserRole]
@@ -58,6 +89,17 @@ class CompanyUpdateView(generics.UpdateAPIView):
             job_count=Count('jobs', distinct=True)
         ).select_related('created_by').prefetch_related('managers')
 
+@extend_schema(
+    tags=['companies'],
+    summary='Delete company',
+    description='Only company owners or admins can delete a company profile',
+    responses={
+        200: OpenApiExample(
+            'Delete Success',
+            value={'message': 'Company deleted successfully'}
+        )
+    }
+)
 class CompanyDeleteView(generics.DestroyAPIView):
     serializer_class = CompanySerializer
     permission_classes = [IsCompanyOwnerOrAdmin]
@@ -65,6 +107,15 @@ class CompanyDeleteView(generics.DestroyAPIView):
     def get_queryset(self):
         return Company.objects.all()
 
+@extend_schema(
+    tags=['companies'],
+    summary='List companies (summary)',
+    description='Get a lightweight list of companies with basic information',
+    parameters=[
+        OpenApiParameter(name='search', description='Search company names and locations', required=False),
+    ],
+    responses={200: CompanySummarySerializer(many=True)}
+)
 class CompanyListView(generics.ListAPIView):
     serializer_class = CompanySummarySerializer
     filter_backends = [filters.SearchFilter]
@@ -79,6 +130,14 @@ class CompanyListView(generics.ListAPIView):
         )
 
 # Admin-only endpoints for company management
+@extend_schema(
+    tags=['companies', 'admin'],
+    summary='Admin: List all companies',
+    description='Admins can view all companies with full details',
+    parameters=[
+        OpenApiParameter(name='search', description='Search company names, locations, and descriptions', required=False),
+    ]
+)
 class CompanyAdminListView(generics.ListAPIView):
     serializer_class = CompanySerializer
     permission_classes = [IsAdminUserRole]
@@ -93,6 +152,17 @@ class CompanyAdminListView(generics.ListAPIView):
         ).select_related('created_by').prefetch_related('managers')
 
 # Company manager management endpoints
+@extend_schema(
+    tags=['companies'],
+    summary='Add manager to company',
+    description='Company owners can add other users as managers',
+    examples=[
+        OpenApiExample(
+            'Add Manager',
+            value={'user_id': 5}
+        )
+    ]
+)
 class CompanyAddManagerView(APIView):
     permission_classes = [IsCompanyOwnerOrAdmin | IsAdminUserRole]
 
@@ -119,6 +189,27 @@ class CompanyAddManagerView(APIView):
         except User.DoesNotExist:
             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
+@extend_schema(
+    tags=['companies'],
+    summary='Remove manager from company',
+    description='Company owners can remove managers from their company',
+    examples=[
+        OpenApiExample(
+            'Remove Manager',
+            value={'user_id': 5}
+        )
+    ],
+    responses={
+        200: OpenApiExample(
+            'Remove Success',
+            value={'message': 'john_doe removed from managers'}
+        ),
+        400: OpenApiExample(
+            'Remove Error',
+            value={'error': 'User is not a manager'}
+        )
+    }
+)
 class CompanyRemoveManagerView(APIView):
     permission_classes = [IsCompanyOwnerOrAdmin | IsAdminUserRole]
 

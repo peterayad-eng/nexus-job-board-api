@@ -8,13 +8,45 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Count, Q
 from .models import User
 from .serializers import (
-    UserSerializer, UserAdminSerializer, UserRegistrationSerializer, 
+    UserSerializer, UserAdminSerializer, UserRegistrationSerializer,
     UserLoginSerializer, UserProfileUpdateSerializer, UserPasswordUpdateSerializer,
     UserSummarySerializer
 )
 from .permissions import IsAdminUserRole, IsOwnerOrAdmin, IsUserOwnerOrAdmin
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 
 # Create your views here.
+@extend_schema(
+    tags=['authentication'],
+    summary='User registration',
+    description='Create a new user account with role-based registration',
+    examples=[
+        OpenApiExample(
+            'Job Seeker Registration',
+            value={
+                'username': 'jobseeker1',
+                'email': 'seeker@example.com',
+                'password': 'securepassword123',
+                'password_confirmation': 'securepassword123',
+                'user_type': 'job_seeker',
+                'first_name': 'John',
+                'last_name': 'Doe'
+            }
+        ),
+        OpenApiExample(
+            'Employer Registration', 
+            value={
+                'username': 'employer1',
+                'email': 'employer@example.com',
+                'password': 'securepassword123',
+                'password_confirmation': 'securepassword123',
+                'user_type': 'employer',
+                'first_name': 'Jane',
+                'last_name': 'Smith'
+            }
+        )
+    ]
+)
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -30,6 +62,20 @@ class RegisterView(APIView):
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@extend_schema(
+    tags=['authentication'],
+    summary='User login',
+    description='Authenticate a user and return JWT tokens',
+    examples=[
+        OpenApiExample(
+            'Login Example',
+            value={
+                'username': 'jobseeker1',
+                'password': 'securepassword123'
+            }
+        )
+    ]
+)
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -45,6 +91,11 @@ class LoginView(APIView):
             }, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@extend_schema(
+    tags=['users'],
+    summary='Retrieve user profile',
+    description='Get the profile of the currently authenticated user'
+)
 class UserProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -66,6 +117,22 @@ class UserProfileView(APIView):
             return Response(UserSerializer(request.user).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@extend_schema(
+    tags=['authentication'],
+    summary='Update user password',
+    description='Change the password for the authenticated user',
+    request=UserPasswordUpdateSerializer,
+    examples=[
+        OpenApiExample(
+            'Password Update',
+            value={
+                'current_password': 'oldpassword123',
+                'new_password': 'newsecurepassword456',
+                'confirm_password': 'newsecurepassword456'
+            }
+        )
+    ]
+)
 class UserPasswordUpdateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -77,6 +144,19 @@ class UserPasswordUpdateView(APIView):
             return Response({'message': 'Password updated successfully'})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@extend_schema(
+    tags=['authentication'],
+    summary='Refresh JWT token',
+    description='Get a new access token using a refresh token',
+    examples=[
+        OpenApiExample(
+            'Token Refresh',
+            value={
+                'refresh': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...'
+            }
+        )
+    ]
+)
 class RefreshTokenView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -93,6 +173,15 @@ class RefreshTokenView(APIView):
             return Response({'error': 'Invalid refresh token'}, status=status.HTTP_400_BAD_REQUEST)
 
 # Admin-only endpoints
+@extend_schema(
+    tags=['users'],
+    summary='List all users',
+    description='Admin-only endpoint to list all users with detailed information',
+    parameters=[
+        OpenApiParameter(name='page', description='Page number', required=False, type=int),
+        OpenApiParameter(name='page_size', description='Number of items per page', required=False, type=int),
+    ]
+)
 class UserListView(generics.ListAPIView):
     serializer_class = UserAdminSerializer
     permission_classes = [IsAdminUserRole]
@@ -104,6 +193,11 @@ class UserListView(generics.ListAPIView):
             posted_job_count=Count('posted_jobs', distinct=True)
         ).select_related('company').prefetch_related('managed_companies')
 
+@extend_schema(
+    tags=['users'],
+    summary='Retrieve, update or delete user',
+    description='Admin can manage any user, regular users can only view their own profile'
+)
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsUserOwnerOrAdmin]
     queryset = User.objects.all()
@@ -120,6 +214,14 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
             posted_job_count=Count('posted_jobs', distinct=True)
         ).select_related('company').prefetch_related('managed_companies')
 
+@extend_schema(
+    tags=['users'],
+    summary='Search users',
+    parameters=[
+        OpenApiParameter(name='search', description='Search by username, email, first/last name', required=False, type=str),
+    ],
+    responses={200: UserSummarySerializer(many=True)}
+)
 class UserSearchView(generics.ListAPIView):
     serializer_class = UserSummarySerializer
     permission_classes = [IsAdminUserRole]
@@ -133,6 +235,22 @@ class UserSearchView(generics.ListAPIView):
             Q(last_name__icontains=search_term)
         )
 
+@extend_schema(
+    tags=['users'],
+    summary='User statistics',
+    responses={
+        200: OpenApiExample(
+            'Stats Example',
+            value={
+                'total_users': 120,
+                'job_seekers': 90,
+                'employers': 25,
+                'admins': 5,
+                'active_users': 100,
+            }
+        )
+    }
+)
 class UserStatsView(APIView):
     permission_classes = [IsAdminUserRole]
 
@@ -147,6 +265,20 @@ class UserStatsView(APIView):
         return Response(stats)
 
 # User management by admin
+@extend_schema(
+    tags=['users'],
+    summary='Activate/deactivate user',
+    description='Admin endpoint to activate or deactivate a user account',
+    responses={
+        200: OpenApiExample(
+            'Activation Response',
+            value={
+                'message': 'User john_doe has been activated',
+                'is_active': True
+            }
+        )
+    }
+)
 class UserActivationView(APIView):
     permission_classes = [IsAdminUserRole]
 
