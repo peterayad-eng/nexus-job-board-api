@@ -23,6 +23,8 @@ class JobSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'posted_by', 'created_at', 'updated_at']
 
 class JobCreateSerializer(serializers.ModelSerializer):
+    is_active = serializers.BooleanField(default=True, required=False)
+
     class Meta:
         model = Job
         fields = [

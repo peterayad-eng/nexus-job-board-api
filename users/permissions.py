@@ -18,10 +18,21 @@ class IsJobSeekerUser(permissions.BasePermission):
 class IsCompanyManager(permissions.BasePermission):
     """Allows access only to managers of a specific company."""
     def has_object_permission(self, request, view, obj):
+        # Handle different object types
+        if hasattr(obj, 'company'):
+            # For Job objects
+            company = obj.company
+        elif hasattr(obj, 'job') and hasattr(obj.job, 'company'):
+            # For Application objects
+            company = obj.job.company
+        else:
+            # For Company objects
+            company = obj
+            
         return (
             request.user.is_authenticated and (
-                obj.created_by == request.user or 
-                obj.managers.filter(id=request.user.id).exists() or
+                getattr(company, 'created_by', None) == request.user or 
+                company.managers.filter(id=request.user.id).exists() or
                 request.user.is_admin_user()
             )
         )
@@ -61,8 +72,36 @@ class IsJobOwnerOrManager(permissions.BasePermission):
     """Allows access to job owners, company managers, or admin users."""
 
     def has_permission(self, request, view):
-        # Require authentication for any job-related action
-        return request.user and request.user.is_authenticated
+        # Require authentication
+        if not request.user or not request.user.is_authenticated:
+            return False
+
+        # Admins always allowed
+        if request.user.is_admin_user():
+            return True
+
+        # For JobApplicationsView - check if user owns the job or manages the company
+        if hasattr(view, 'kwargs') and 'job_id' in view.kwargs:
+            from jobs.models import Job
+            try:
+                job = Job.objects.get(id=view.kwargs['job_id'])
+                return (job.posted_by == request.user or 
+                        job.company.managers.filter(id=request.user.id).exists())
+            except Job.DoesNotExist:
+                return False
+
+        # For CompanyApplicationsView - check if user manages the company
+        if hasattr(view, 'kwargs') and 'company_id' in view.kwargs:
+            from companies.models import Company
+            try:
+                company = Company.objects.get(id=view.kwargs['company_id'])
+                return (company.created_by == request.user or 
+                        company.managers.filter(id=request.user.id).exists())
+            except Company.DoesNotExist:
+                return False
+
+        return True
+
 
     def has_object_permission(self, request, view, obj):
         user = request.user

@@ -72,6 +72,10 @@ class JobRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
             'categories', 'required_skills'
         ).annotate(application_count=Count('applications'))
 
+        # For GET requests, only show active jobs to non-admins
+        if self.request.method == 'GET' and not (self.request.user.is_authenticated and self.request.user.is_admin_user()):
+            queryset = queryset.filter(is_active=True)
+
         if self.request.user.is_authenticated:
             queryset = queryset.annotate(
                 is_owner=Q(posted_by=self.request.user)

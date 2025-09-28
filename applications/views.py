@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from django.db.models import Count
 from django.shortcuts import get_object_or_404
 from .models import Application
-from .serializers import ApplicationSerializer, ApplicationCreateSerializer, ApplicationSummarySerializer
+from .serializers import ApplicationSerializer, ApplicationCreateSerializer, ApplicationSummarySerializer, ApplicationStatusSerializer
 from users.permissions import IsAdminUserRole, IsCompanyManager, IsJobOwnerOrManager
 from jobs.models import Job
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
@@ -148,7 +148,7 @@ class ApplicationAdminListView(generics.ListAPIView):
     tags=['applications'],
     summary='Update application status',
     description='Job owners and company managers can update the status of applications',
-    request=ApplicationSerializer,  # Or create ApplicationStatusSerializer if needed
+    request=ApplicationStatusSerializer,
     examples=[
         OpenApiExample(
             'Status Update Example',
@@ -161,7 +161,7 @@ class ApplicationAdminListView(generics.ListAPIView):
     responses={200: ApplicationSerializer}
 )
 class ApplicationStatusUpdateView(generics.UpdateAPIView):
-    serializer_class = ApplicationSerializer
+    serializer_class = ApplicationStatusSerializer
     permission_classes = [IsJobOwnerOrManager | IsAdminUserRole]
     
     def get_queryset(self):

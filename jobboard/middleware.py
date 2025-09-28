@@ -1,6 +1,7 @@
 import time
 import logging
 from django.db import connection
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 

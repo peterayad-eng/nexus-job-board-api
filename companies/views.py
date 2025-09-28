@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework import generics, permissions, filters, status
 from rest_framework.response import Response
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from .models import Company
@@ -27,7 +27,7 @@ class CompanyListCreateView(generics.ListCreateAPIView):
         return Company.objects.annotate(
             manager_count=Count('managers', distinct=True),
             employee_count=Count('employees', distinct=True),
-            job_count=Count('jobs', distinct=True)
+            job_count=Count('jobs', filter=Q(jobs__is_active=True), distinct=True)
         ).select_related('created_by').prefetch_related('managers')
 
     def get_serializer_class(self):
@@ -58,7 +58,7 @@ class CompanyRetrieveView(generics.RetrieveAPIView):
         return Company.objects.annotate(
             manager_count=Count('managers', distinct=True),
             employee_count=Count('employees', distinct=True),
-            job_count=Count('jobs', distinct=True)
+            job_count=Count('jobs', filter=Q(jobs__is_active=True), distinct=True)
         ).select_related('created_by').prefetch_related('managers')
 
 @extend_schema(
@@ -86,7 +86,7 @@ class CompanyUpdateView(generics.UpdateAPIView):
         return Company.objects.annotate(
             manager_count=Count('managers', distinct=True),
             employee_count=Count('employees', distinct=True),
-            job_count=Count('jobs', distinct=True)
+            job_count=Count('jobs', filter=Q(jobs__is_active=True), distinct=True)
         ).select_related('created_by').prefetch_related('managers')
 
 @extend_schema(
@@ -126,7 +126,7 @@ class CompanyListView(generics.ListAPIView):
         return Company.objects.annotate(
             manager_count=Count('managers', distinct=True),
             employee_count=Count('employees', distinct=True),
-            job_count=Count('jobs', distinct=True)
+            job_count=Count('jobs', filter=Q(jobs__is_active=True), distinct=True)
         )
 
 # Admin-only endpoints for company management
@@ -148,7 +148,7 @@ class CompanyAdminListView(generics.ListAPIView):
         return Company.objects.annotate(
             manager_count=Count('managers', distinct=True),
             employee_count=Count('employees', distinct=True),
-            job_count=Count('jobs', distinct=True)
+            job_count=Count('jobs', filter=Q(jobs__is_active=True), distinct=True)
         ).select_related('created_by').prefetch_related('managers')
 
 # Company manager management endpoints
@@ -169,7 +169,15 @@ class CompanyAddManagerView(APIView):
     def post(self, request, pk):
         company = get_object_or_404(Company, pk=pk)
         user_id = request.data.get('user_id')
-        
+
+        if not (company.created_by == request.user or
+                company.managers.filter(id=request.user.id).exists() or
+                request.user.is_admin_user()):
+            return Response(
+                {'error': 'You do not have permission to add managers to this company'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         if not user_id:
             return Response({'error': 'user_id is required'}, status=status.HTTP_400_BAD_REQUEST)
         
