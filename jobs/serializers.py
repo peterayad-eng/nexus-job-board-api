@@ -2,6 +2,8 @@ from rest_framework import serializers
 from categories.serializers import CategorySerializer, SkillSerializer
 from companies.serializers import CompanySerializer
 from .models import Job
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 
 class JobSerializer(serializers.ModelSerializer):
     company_details = CompanySerializer(source='company', read_only=True)
@@ -64,9 +66,11 @@ class JobSummarySerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_at']
     
+    @extend_schema_field(OpenApiTypes.STR)
     def get_category_names(self, obj):
         return [category.name for category in obj.categories.all()]
     
+    @extend_schema_field(OpenApiTypes.STR)
     def get_skill_names(self, obj):
         return [skill.name for skill in obj.required_skills.all()]
 
@@ -81,4 +85,8 @@ class JobSearchSerializer(serializers.ModelSerializer):
             'salary_range', 'application_count', 'created_at'
         ]
         read_only_fields = ['id', 'created_at']
+
+class JobActivationResponseSerializer(serializers.Serializer):
+    message = serializers.CharField()
+    is_active = serializers.BooleanField()
 

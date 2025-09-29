@@ -171,3 +171,19 @@ class UserLoginSerializer(serializers.Serializer):
             raise serializers.ValidationError('Unable to log in with provided credentials.')
         raise serializers.ValidationError('Must include "username" and "password".')
 
+class LoginResponseSerializer(serializers.Serializer):
+    user = UserSerializer()
+    refresh = serializers.CharField()
+    access = serializers.CharField()
+
+class RegisterResponseSerializer(serializers.Serializer):
+    user = UserSerializer()
+    refresh = serializers.CharField()
+    access = serializers.CharField()
+
+class TokenRefreshRequestSerializer(serializers.Serializer):
+    refresh = serializers.CharField()
+
+class TokenRefreshResponseSerializer(serializers.Serializer):
+    access = serializers.CharField()
+

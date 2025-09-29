@@ -10,7 +10,8 @@ from .models import User
 from .serializers import (
     UserSerializer, UserAdminSerializer, UserRegistrationSerializer,
     UserLoginSerializer, UserProfileUpdateSerializer, UserPasswordUpdateSerializer,
-    UserSummarySerializer
+    UserSummarySerializer, LoginResponseSerializer, RegisterResponseSerializer,
+    TokenRefreshRequestSerializer, TokenRefreshResponseSerializer
 )
 from .permissions import IsAdminUserRole, IsOwnerOrAdmin, IsUserOwnerOrAdmin
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
@@ -20,6 +21,8 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExampl
     tags=['authentication'],
     summary='User registration',
     description='Create a new user account with role-based registration',
+    request=UserRegistrationSerializer,
+    responses=RegisterResponseSerializer,
     examples=[
         OpenApiExample(
             'Job Seeker Registration',
@@ -66,6 +69,8 @@ class RegisterView(APIView):
     tags=['authentication'],
     summary='User login',
     description='Authenticate a user and return JWT tokens',
+    request=UserLoginSerializer,
+    responses=LoginResponseSerializer,
     examples=[
         OpenApiExample(
             'Login Example',
@@ -148,6 +153,8 @@ class UserPasswordUpdateView(APIView):
     tags=['authentication'],
     summary='Refresh JWT token',
     description='Get a new access token using a refresh token',
+    request=TokenRefreshRequestSerializer,
+    responses=TokenRefreshResponseSerializer,
     examples=[
         OpenApiExample(
             'Token Refresh',
@@ -203,12 +210,24 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
 
     def get_serializer_class(self):
+        # Handle schema generation case (no request user)
+        if getattr(self, 'swagger_fake_view', False):
+            return UserSerializer
+
+        # Handle case where user might not be authenticated during schema generation
+        if not self.request.user.is_authenticated:
+            return UserSerializer
+
         # Admins see full details, users see basic info about themselves
         if self.request.user.is_admin_user():
             return UserAdminSerializer
         return UserSerializer
 
     def get_queryset(self):
+        # Handle schema generation case
+        if getattr(self, 'swagger_fake_view', False):
+            return User.objects.none()
+
         return User.objects.annotate(
             application_count=Count('applications', distinct=True),
             posted_job_count=Count('posted_jobs', distinct=True)

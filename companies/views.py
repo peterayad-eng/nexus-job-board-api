@@ -5,7 +5,11 @@ from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from .models import Company
-from .serializers import CompanySerializer, CompanyCreateSerializer, CompanySummarySerializer
+from .serializers import (
+    CompanySerializer, CompanyCreateSerializer, CompanySummarySerializer,
+    DeleteResponseSerializer, AddManagerSerializer, RemoveManagerSerializer,
+    ManagerResponseSerializer
+)
 from users.permissions import IsAdminUserRole, IsCompanyManager, IsOwnerOrAdmin, IsCompanyOwnerOrAdmin
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 
@@ -94,10 +98,10 @@ class CompanyUpdateView(generics.UpdateAPIView):
     summary='Delete company',
     description='Only company owners or admins can delete a company profile',
     responses={
-        200: OpenApiExample(
-            'Delete Success',
-            value={'message': 'Company deleted successfully'}
-        )
+        204: None,
+        200: DeleteResponseSerializer,  
+        403: DeleteResponseSerializer,
+        404: DeleteResponseSerializer,
     }
 )
 class CompanyDeleteView(generics.DestroyAPIView):
@@ -156,6 +160,13 @@ class CompanyAdminListView(generics.ListAPIView):
     tags=['companies'],
     summary='Add manager to company',
     description='Company owners can add other users as managers',
+    request=AddManagerSerializer,
+    responses={
+        200: ManagerResponseSerializer,
+        400: ManagerResponseSerializer,
+        403: ManagerResponseSerializer,
+        404: ManagerResponseSerializer,
+    },
     examples=[
         OpenApiExample(
             'Add Manager',
@@ -201,22 +212,19 @@ class CompanyAddManagerView(APIView):
     tags=['companies'],
     summary='Remove manager from company',
     description='Company owners can remove managers from their company',
+    request=RemoveManagerSerializer,
+    responses={
+        200: ManagerResponseSerializer,
+        400: ManagerResponseSerializer,
+        403: ManagerResponseSerializer,
+        404: ManagerResponseSerializer,
+    },
     examples=[
         OpenApiExample(
             'Remove Manager',
             value={'user_id': 5}
         )
-    ],
-    responses={
-        200: OpenApiExample(
-            'Remove Success',
-            value={'message': 'john_doe removed from managers'}
-        ),
-        400: OpenApiExample(
-            'Remove Error',
-            value={'error': 'User is not a manager'}
-        )
-    }
+    ]
 )
 class CompanyRemoveManagerView(APIView):
     permission_classes = [IsCompanyOwnerOrAdmin | IsAdminUserRole]

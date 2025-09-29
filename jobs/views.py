@@ -4,7 +4,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
 from django.db.models import Count, Q
 from .models import Job
-from .serializers import JobSerializer, JobCreateSerializer, JobUpdateSerializer, JobSummarySerializer
+from .serializers import JobSerializer, JobCreateSerializer, JobUpdateSerializer, JobSummarySerializer, JobActivationResponseSerializer
 from .filters import JobFilter
 from users.permissions import IsAdminUserRole, IsCompanyManager
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
@@ -141,6 +141,11 @@ class JobSearchView(generics.ListAPIView):
     tags=['jobs'],
     summary='List jobs for a specific company',
     description='Retrieve active job postings for a given company',
+    responses={
+        200: JobActivationResponseSerializer,
+        403: JobActivationResponseSerializer,
+        404: JobActivationResponseSerializer,
+    },
     parameters=[
         OpenApiParameter(name='company_id', description='ID of the company', required=True, type=int),
     ]
@@ -150,6 +155,10 @@ class CompanyJobsView(generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
+        # Handle schema generation case
+        if getattr(self, 'swagger_fake_view', False):
+            return Job.objects.none()
+
         company_id = self.kwargs['company_id']
         return Job.objects.filter(company_id=company_id, is_active=True).select_related(
             'company'
@@ -180,13 +189,9 @@ class JobAdminListView(generics.ListAPIView):
     summary='Activate/deactivate job',
     description='Toggle job activation status. Only admins or company managers can perform this action.',
     responses={
-        200: OpenApiExample(
-            'Job Activation Example',
-            value={
-                'message': 'Job "Backend Developer" has been activated',
-                'is_active': True
-            }
-        )
+        200: JobActivationResponseSerializer,
+        403: JobActivationResponseSerializer,
+        404: JobActivationResponseSerializer,
     }
 )
 class JobActivationView(generics.UpdateAPIView):
@@ -195,6 +200,9 @@ class JobActivationView(generics.UpdateAPIView):
     http_method_names = ['patch']
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Job.objects.none()
+
         return Job.objects.select_related('company')
 
     def patch(self, request, *args, **kwargs):

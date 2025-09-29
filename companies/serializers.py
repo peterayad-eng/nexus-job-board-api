@@ -35,3 +35,15 @@ class CompanySummarySerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'location', 'website', 'job_count']
         read_only_fields = ['id', 'job_count']
 
+class DeleteResponseSerializer(serializers.Serializer):
+    message = serializers.CharField()
+
+class AddManagerSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField(help_text="ID of the user to add as manager")
+
+class RemoveManagerSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+
+class ManagerResponseSerializer(serializers.Serializer):
+    message = serializers.CharField()
+

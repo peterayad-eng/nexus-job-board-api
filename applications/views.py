@@ -115,10 +115,15 @@ class JobApplicationsView(generics.ListAPIView):
     tags=['applications'],
     summary='Get application count for a job',
     description='Returns the total number of applications for the given job ID',
-    responses={200: OpenApiExample(
-        'Application Count Example',
-        value={"job_id": 5, "application_count": 12}
-    )}
+    responses={
+        200: {
+            'type': 'object',
+            'properties': {
+                'job_id': {'type': 'integer'},
+                'application_count': {'type': 'integer'}
+            }
+        }
+    }
 )
 class JobApplicationCountView(APIView):
     """ Returns the total number of applications for a given job. """ 

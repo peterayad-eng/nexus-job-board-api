@@ -89,9 +89,6 @@ class CategoryCreateView(generics.CreateAPIView):
     tags=['categories', 'admin'],
     summary='Admin: Update category',
     description='Admins can update category information',
-    examples=[
-        {"name": "Updated Category", "description": "Updated description..."}
-    ]
 )
 class CategoryUpdateView(generics.UpdateAPIView):
     queryset = Category.objects.all()
